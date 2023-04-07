@@ -23,10 +23,23 @@ kotlin {
         val jvmMain by getting {
             dependencies {
                 implementation(compose.desktop.currentOs)
+
+                implementation("org.apache.lucene:lucene-core:9.5.0")
+                implementation("org.apache.lucene:lucene-queryparser:9.5.0")
+                implementation("org.apache.lucene:lucene-suggest:9.5.0")
+                implementation("org.apache.lucene:lucene-codecs:9.5.0")
+                implementation("org.apache.poi:poi:5.2.3")
+                implementation("org.apache.poi:poi-ooxml:5.2.3")
+                implementation("org.apache.poi:poi-ooxml-schemas:5.2.3")
+                implementation("org.apache.poi:poi-scratchpad:5.2.3")
+                implementation("org.apache.odftoolkit:simple-odf:0.8.2-incubating")
+                implementation("org.apache.tika:tika-parsers:2.7.0")
+
             }
         }
         val jvmTest by getting
     }
+
 }
 
 compose.desktop {
