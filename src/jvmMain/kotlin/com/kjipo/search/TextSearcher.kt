@@ -3,6 +3,7 @@ package com.kjipo.search
 import com.kjipo.Config
 import org.apache.lucene.analysis.Analyzer
 import org.apache.lucene.analysis.standard.StandardAnalyzer
+import org.apache.lucene.document.Document
 import org.apache.lucene.index.DirectoryReader
 import org.apache.lucene.queryparser.classic.QueryParser
 import org.apache.lucene.search.IndexSearcher
@@ -33,12 +34,12 @@ class TextSearcher(private val config: Config) {
         val directory: Directory = FSDirectory.open(config.indexFileDirectory)
         indexReader = DirectoryReader.open(directory)
 
-        val luceneDictionary = LuceneDictionary(indexReader, "contents")
+//        val luceneDictionary = LuceneDictionary(indexReader, "contents")
 
         searcher = IndexSearcher(indexReader)
 
 //        iterator = lucene_dictionary.getEntryIterator()
-        val iterator = luceneDictionary.entryIterator
+//        val iterator = luceneDictionary.entryIterator
         analyzer = StandardAnalyzer()
 //        searcher = IndexSearcher(index_reader)
 //        formatter = SimpleHTMLFormatter()
@@ -47,7 +48,7 @@ class TextSearcher(private val config: Config) {
     }
 
 
-    fun search(searchString: String) {
+    fun search(searchString: String): List<TextSearchResult> {
 //        counter = 0
 //        for term in BytesRefIterator.cast_(iterator):
 //        term_as_string = term.utf8ToString()
@@ -74,29 +75,43 @@ class TextSearcher(private val config: Config) {
         val hits = searcher.search(query, 100_000)
 
         val scorer = QueryScorer(query)
+        val fragmenter = SimpleSpanFragmenter(scorer, 10)
 
-        for (scoreDoc in hits.scoreDocs) {
+        return hits.scoreDocs.map {scoreDoc ->
             println("Document : ${scoreDoc.doc}")
-            val document = searcher.doc(scoreDoc.doc)
 
-            val fragmenter = SimpleSpanFragmenter(scorer, 10)
+            val document = searcher.doc(scoreDoc.doc)
             val formatter = SimpleHTMLFormatter()
             val highlighter = Highlighter(formatter, scorer)
+
+            document.fields.forEach {
+                println("Field: ${it.name()}. Type: ${it.fieldType()}")
+            }
+
+//            println("Document name: ${document.get("doc_name")}")
 
             highlighter.setTextFragmenter(fragmenter)
 
             val stream = TokenSources.getAnyTokenStream(indexReader, scoreDoc.doc, "contents", analyzer)
             val bestFragments = highlighter.getBestFragments(stream, document.get("contents"), 10)
 
-//        for fragment in best_fragments:
-//        print('fragment: ', fragment)
-
-            for (bestFragment in bestFragments) {
-                println("Fragment: $bestFragment")
+            bestFragments.forEach {
+                println("Fragment: $it")
             }
 
+            TextSearchResult(scoreDoc.doc,
+                document.get("doc_name"),
+                bestFragments.toList())
         }
     }
 
+    fun getDocument(documentId: Int): Document? {
+        return indexReader.document(documentId)
+    }
 
 }
+
+
+class TextSearchResult(val documentId: Int,
+                       val documentName: String,
+                       val fragments: List<String>)

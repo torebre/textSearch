@@ -9,18 +9,27 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
+import com.kjipo.Config
+import com.kjipo.search.TextSearcher
+import com.kjipo.ui.SearchModel
+import com.kjipo.ui.SearchUi
 
 @Composable
 @Preview
 fun App() {
-    var text by remember { mutableStateOf("Hello, World!") }
+//    var text by remember { mutableStateOf("Hello, World!") }
+    val config = Config.getConfig("/home/student/workspace/textSearch/textSearch/search_config.properties")
+    val textSearcher = TextSearcher(config)
+    val searchModel = SearchModel(textSearcher)
+
 
     MaterialTheme {
-        Button(onClick = {
-            text = "Hello, Desktop!"
-        }) {
-            Text(text)
-        }
+        SearchUi(searchModel)
+//        Button(onClick = {
+//            text = "Hello, Desktop!"
+//        }) {
+//            Text(text)
+//        }
     }
 }
 
