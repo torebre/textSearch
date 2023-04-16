@@ -8,11 +8,10 @@ import org.apache.lucene.index.DirectoryReader
 import org.apache.lucene.queryparser.classic.QueryParser
 import org.apache.lucene.search.IndexSearcher
 import org.apache.lucene.search.highlight.*
-import org.apache.lucene.search.spell.LuceneDictionary
 import org.apache.lucene.store.Directory
 import org.apache.lucene.store.FSDirectory
-import java.nio.file.Files
-import java.nio.file.Path
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
 
 class TextSearcher(private val config: Config) {
@@ -75,10 +74,9 @@ class TextSearcher(private val config: Config) {
         val hits = searcher.search(query, 100_000)
 
         val scorer = QueryScorer(query)
-        val fragmenter = SimpleSpanFragmenter(scorer, 10)
+        val fragmenter = SimpleSpanFragmenter(scorer, 40)
 
         return hits.scoreDocs.map {scoreDoc ->
-            println("Document : ${scoreDoc.doc}")
 
             val document = searcher.doc(scoreDoc.doc)
             val formatter = SimpleHTMLFormatter()
@@ -90,17 +88,22 @@ class TextSearcher(private val config: Config) {
 
 //            println("Document name: ${document.get("doc_name")}")
 
-            highlighter.setTextFragmenter(fragmenter)
+            highlighter.textFragmenter = fragmenter
 
-            val stream = TokenSources.getAnyTokenStream(indexReader, scoreDoc.doc, "contents", analyzer)
-            val bestFragments = highlighter.getBestFragments(stream, document.get("contents"), 10)
+            val stream = TokenSources.getAnyTokenStream(indexReader,
+                scoreDoc.doc,
+                "contents",
+                analyzer)
+            val bestFragments = highlighter.getBestFragments(stream,
+                document.get("contents"),
+                10)
 
             bestFragments.forEach {
                 println("Fragment: $it")
             }
 
             TextSearchResult(scoreDoc.doc,
-                document.get("doc_name"),
+                LocalDate.parse(document.get("doc_name"), dateFormatter),
                 bestFragments.toList())
         }
     }
@@ -109,9 +112,15 @@ class TextSearcher(private val config: Config) {
         return indexReader.document(documentId)
     }
 
+
+    companion object {
+        val dateFormatter = DateTimeFormatter.ofPattern("MMddyy")
+
+    }
+
 }
 
 
-class TextSearchResult(val documentId: Int,
-                       val documentName: String,
+data class TextSearchResult(val documentId: Int,
+                       val documentDate: LocalDate,
                        val fragments: List<String>)

@@ -4,6 +4,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.kjipo.search.TextSearcher
+import java.time.LocalDate
 
 class SearchModel(private val textSearcher: TextSearcher) {
 
@@ -18,7 +19,8 @@ class SearchModel(private val textSearcher: TextSearcher) {
     fun setCurrentDocument(documentId: Int) {
         textSearcher.getDocument(documentId)?.let { document ->
             document.get("contents").let {documentContents ->
-                setState { copy(currentDocumentId = documentId, currentDocument = documentContents) }
+                setState { copy(currentDocumentId = documentId,
+                    currentDocument = documentContents) }
             }
         }
     }
@@ -35,6 +37,7 @@ class SearchModel(private val textSearcher: TextSearcher) {
                         searchResults = textSearcher.search(it).map { textSearchResult ->
                             SearchResult(
                                 textSearchResult.documentId,
+                                textSearchResult.documentDate,
                                 textSearchResult.fragments
                             )
                         })
@@ -47,11 +50,17 @@ class SearchModel(private val textSearcher: TextSearcher) {
 }
 
 
-data class SearchResult(val documentId: Int, val fragments: List<String>)
+data class SearchResult(val documentId: Int, val documentDate: LocalDate, val fragments: List<String>) {
+    fun summary(): String {
+        return fragments.joinToString(separator = "...")
+    }
+
+}
 
 data class SearchUiState(
     val searchText: String = "",
     val searchResults: List<SearchResult> = emptyList(),
     val currentDocumentId: Int? = null,
+    val currentDocumentDate: LocalDate? = null,
     val currentDocument: String = ""
 )
