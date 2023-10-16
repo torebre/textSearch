@@ -16,7 +16,7 @@ repositories {
 
 kotlin {
     jvm {
-        jvmToolchain(17)
+        jvmToolchain(20)
         withJava()
     }
     sourceSets {
@@ -36,6 +36,8 @@ kotlin {
                 implementation("org.apache.odftoolkit:simple-odf:0.8.2-incubating")
                 implementation("org.apache.tika:tika-parsers:2.7.0")
 
+
+                implementation("org.jfree:jfreechart:1.5.4")
             }
         }
         val jvmTest by getting {
