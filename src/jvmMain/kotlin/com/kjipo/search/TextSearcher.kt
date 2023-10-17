@@ -12,40 +12,24 @@ import org.apache.lucene.search.TopDocs
 import org.apache.lucene.search.highlight.*
 import org.apache.lucene.store.Directory
 import org.apache.lucene.store.FSDirectory
-import org.jfree.data.time.Day
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
 
-class TextSearcher(private val config: Config) {
+class TextSearcher(config: Config) {
     private val analyzer: Analyzer
     private val searcher: IndexSearcher
     private val indexReader: DirectoryReader
     private val queryParser: QueryParser
 
     init {
-//        paths_dict = util.getPaths()
-//        # textSearcher = TextSearcher(paths_dict['fs_directory'])
-//        fs_directory = FSDirectory.open(Paths.get(paths_dict['fs_directory']))
-//        index_reader = DirectoryReader.open(fs_directory)
-//        lucene_dictionary = LuceneDictionary(index_reader, 'contents')
-//        iterator = lucene_dictionary.getEntryIterator()
-//        analyzer = StandardAnalyzer()
-//        searcher = IndexSearcher(index_reader)
-//        formatter = SimpleHTMLFormatter()
-
         val directory: Directory = FSDirectory.open(config.indexFileDirectory)
         indexReader = DirectoryReader.open(directory)
 
 //        val luceneDictionary = LuceneDictionary(indexReader, "contents")
 
         searcher = IndexSearcher(indexReader)
-
-//        iterator = lucene_dictionary.getEntryIterator()
-//        val iterator = luceneDictionary.entryIterator
         analyzer = StandardAnalyzer()
-//        searcher = IndexSearcher(index_reader)
-//        formatter = SimpleHTMLFormatter()
 
         // Query parser is not thread-safe, but this application only runs searches on one thread
         queryParser = QueryParser("contents", analyzer)
@@ -65,20 +49,18 @@ class TextSearcher(private val config: Config) {
         hits: TopDocs
     ): List<TextSearchResult> {
         val scorer = QueryScorer(query)
-        val fragmenter = SimpleSpanFragmenter(scorer, 40)
+        val fragmenter = SimpleSpanFragmenter(scorer, 50)
 
         return hits.scoreDocs.map { scoreDoc ->
             val document = searcher.doc(scoreDoc.doc)
             val formatter = SimpleHTMLFormatter()
-            val highlighter = Highlighter(formatter, scorer)
+            val highlighter = Highlighter(formatter, scorer).also {
+                it.textFragmenter = fragmenter
+            }
 
             document.fields.forEach {
                 println("Field: ${it.name()}. Type: ${it.fieldType()}")
             }
-
-            //            println("Document name: ${document.get("doc_name")}")
-
-            highlighter.textFragmenter = fragmenter
 
             val stream = TokenSources.getAnyTokenStream(
                 indexReader,
@@ -89,12 +71,8 @@ class TextSearcher(private val config: Config) {
             val bestFragments = highlighter.getBestFragments(
                 stream,
                 document.get("contents"),
-                10
+               5
             )
-
-            bestFragments.forEach {
-                println("Fragment: $it")
-            }
 
             TextSearchResult(
                 scoreDoc.doc,

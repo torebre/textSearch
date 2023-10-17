@@ -9,6 +9,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.awt.SwingPanel
 import androidx.compose.ui.draw.clip
@@ -78,18 +79,41 @@ fun SearchUi(searchModel: SearchModel) {
 @Composable
 private fun SearchList(uiState: SearchUiState, searchModel: SearchModel) {
     val listState = rememberLazyListState()
+    val scrollStateVertical = rememberScrollState(0)
 
     Row {
-        LazyColumn(modifier = Modifier.width(360.dp), state = listState) {
-            items(uiState.searchResults) { searchResult ->
-                // TODO Create element for showing search result
-
-                SearchHit(searchResult, searchModel::setCurrentDocument)
+        Box {
+            LazyColumn(
+                modifier = Modifier.width(360.dp),
+                state = listState
+            ) {
+                items(uiState.searchResults) { searchResult ->
+                    SearchHit(searchResult, searchModel::setCurrentDocument)
+                }
             }
+            VerticalScrollbar(
+                modifier = Modifier.align(Alignment.CenterEnd)
+                    .fillMaxHeight()
+                    .border(5.dp, color = Color.Green),
+                adapter = rememberScrollbarAdapter(listState)
+            )
         }
 
-        Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-            Text(uiState.currentDocument)
+        Box {
+            Column {
+                Box(modifier = Modifier.padding(5.dp)
+                    .verticalScroll(scrollStateVertical)) {
+                    Text(
+                        text = uiState.currentDocument
+                    )
+                }
+            }
+
+            VerticalScrollbar(
+                modifier = Modifier.align(Alignment.CenterEnd)
+                    .fillMaxHeight().border(5.dp, color = Color.Green),
+                adapter = rememberScrollbarAdapter(scrollStateVertical)
+            )
         }
     }
 }
@@ -100,8 +124,10 @@ private fun SearchList(uiState: SearchUiState, searchModel: SearchModel) {
 private fun SearchHit(searchResult: SearchResult, setCurrentDocument: (Int) -> Unit) {
     val roundedShape = RoundedCornerShape(12.dp)
     Box(
-        modifier = Modifier.background(MaterialTheme.colors.secondary).width(200.dp)
+        modifier = Modifier.padding(2.dp)
+            .width(200.dp)
             .clip(roundedShape)
+            .background(MaterialTheme.colors.secondary)
             .combinedClickable(onClick = {
                 setCurrentDocument(searchResult.documentId)
             })
