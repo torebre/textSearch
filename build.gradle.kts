@@ -29,13 +29,6 @@ kotlin {
                 implementation("org.apache.lucene:lucene-suggest:7.7.3")
                 implementation("org.apache.lucene:lucene-codecs:7.7.3")
                 implementation("org.apache.lucene:lucene-highlighter:7.7.3")
-                implementation("org.apache.poi:poi:5.2.3")
-                implementation("org.apache.poi:poi-ooxml:5.2.3")
-                implementation("org.apache.poi:poi-ooxml-schemas:4.1.2")
-                implementation("org.apache.poi:poi-scratchpad:5.2.3")
-                implementation("org.apache.odftoolkit:simple-odf:0.8.2-incubating")
-                implementation("org.apache.tika:tika-parsers:2.7.0")
-
 
                 implementation("org.jfree:jfreechart:1.5.4")
             }

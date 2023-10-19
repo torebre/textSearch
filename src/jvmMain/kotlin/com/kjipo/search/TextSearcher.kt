@@ -6,6 +6,8 @@ import org.apache.lucene.analysis.standard.StandardAnalyzer
 import org.apache.lucene.document.Document
 import org.apache.lucene.index.DirectoryReader
 import org.apache.lucene.queryparser.classic.QueryParser
+import org.apache.lucene.search.DocIdSetIterator
+import org.apache.lucene.search.DocIdSetIterator.NO_MORE_DOCS
 import org.apache.lucene.search.IndexSearcher
 import org.apache.lucene.search.Query
 import org.apache.lucene.search.TopDocs
@@ -41,6 +43,23 @@ class TextSearcher(config: Config) {
         val hits = searcher.search(query, 100_000)
 
         return SearchResult(query, hits)
+    }
+
+    fun getDocumentsByDate() {
+        val docSetIterator = DocIdSetIterator.all(indexReader.maxDoc())
+        while(true) {
+            val documentId = docSetIterator.nextDoc()
+            println("Document ID: $documentId")
+
+            if(documentId == NO_MORE_DOCS) {
+                break
+            }
+
+            val document = indexReader.document(documentId)
+            val documentDate = LocalDate.parse(document.get("doc_name"), dateFormatter)
+            println("Document date: $documentDate")
+        }
+
     }
 
 
