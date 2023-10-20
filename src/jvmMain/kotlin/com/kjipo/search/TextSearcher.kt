@@ -14,8 +14,10 @@ import org.apache.lucene.search.TopDocs
 import org.apache.lucene.search.highlight.*
 import org.apache.lucene.store.Directory
 import org.apache.lucene.store.FSDirectory
+import org.slf4j.LoggerFactory.getLogger
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import java.util.stream.Stream
 
 
 class TextSearcher(config: Config) {
@@ -45,21 +47,18 @@ class TextSearcher(config: Config) {
         return SearchResult(query, hits)
     }
 
-    fun getDocumentsByDate() {
+    fun getDocumentsByDate(): List<Pair<LocalDate, Int>> {
         val docSetIterator = DocIdSetIterator.all(indexReader.maxDoc())
-        while(true) {
-            val documentId = docSetIterator.nextDoc()
-            println("Document ID: $documentId")
 
-            if(documentId == NO_MORE_DOCS) {
-                break
+        return Stream.generate { docSetIterator.nextDoc() }
+            .takeWhile { it != NO_MORE_DOCS }
+            .map { documentId ->
+                val document = indexReader.document(documentId)
+                val documentDate = LocalDate.parse(document.get("doc_name"), dateFormatter)
+
+                Pair(documentDate, documentId)
             }
-
-            val document = indexReader.document(documentId)
-            val documentDate = LocalDate.parse(document.get("doc_name"), dateFormatter)
-            println("Document date: $documentDate")
-        }
-
+            .toList()
     }
 
 
@@ -78,7 +77,7 @@ class TextSearcher(config: Config) {
             }
 
             document.fields.forEach {
-                println("Field: ${it.name()}. Type: ${it.fieldType()}")
+                logger.info("Field: ${it.name()}. Type: ${it.fieldType()}")
             }
 
             val stream = TokenSources.getAnyTokenStream(
@@ -90,7 +89,7 @@ class TextSearcher(config: Config) {
             val bestFragments = highlighter.getBestFragments(
                 stream,
                 document.get("contents"),
-               5
+                5
             )
 
             TextSearchResult(
@@ -121,6 +120,9 @@ class TextSearcher(config: Config) {
 
     companion object {
         val dateFormatter = DateTimeFormatter.ofPattern("MMddyy")
+
+        private val logger = getLogger(TextSearcher::class.java)
+
 
     }
 

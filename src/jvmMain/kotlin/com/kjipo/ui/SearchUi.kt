@@ -11,7 +11,6 @@ import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.awt.SwingPanel
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.SpanStyle
@@ -20,23 +19,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import com.kjipo.search.TextSearcher
-import org.jfree.chart.ChartFactory
-import org.jfree.chart.ChartPanel
-import org.jfree.chart.JFreeChart
-import org.jfree.chart.axis.DateAxis
-import org.jfree.chart.plot.XYPlot
-import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer
-import org.jfree.chart.ui.RectangleInsets
-import org.jfree.data.time.Month
-import org.jfree.data.time.TimeSeries
-import org.jfree.data.time.TimeSeriesCollection
-import org.jfree.data.xy.XYDataset
-import java.text.SimpleDateFormat
 import java.time.LocalDate
-import javax.swing.JPanel
 
 @Composable
-fun SearchUi(searchModel: SearchModel) {
+fun SearchUi(searchModel: SearchModel, documentListModel: DocumentListModel) {
     val uiState = searchModel.uiState
 
     Column(modifier = Modifier.fillMaxWidth()) {
@@ -63,14 +49,18 @@ fun SearchUi(searchModel: SearchModel) {
             Tab(text = { Text("Hits") },
                 selected = tabIndex == 0,
                 onClick = { tabIndex = 0 })
-            Tab(text = { Text("Graph") },
+            Tab(text = { Text("Documents") },
                 selected = tabIndex == 1,
                 onClick = { tabIndex = 1 })
+            Tab(text = { Text("Graph") },
+                selected = tabIndex == 2,
+                onClick = { tabIndex = 2 })
         }
 
         when (tabIndex) {
             0 -> SearchList(uiState, searchModel)
-            1 -> SearchGraph(searchModel.getTimeSeries())
+            1 -> DocumentList(documentListModel)
+            2 -> SearchGraph(searchModel.getTimeSeries())
         }
     }
 
@@ -153,53 +143,6 @@ private fun SearchHit(searchResult: SearchResult, setCurrentDocument: (Int) -> U
             )
         }
     }
-}
-
-
-@Composable
-fun SearchGraph(timeSeries: TimeSeries) {
-    SwingPanel(
-        background = Color.White,
-        modifier = Modifier.fillMaxSize(),
-        factory = {
-            val dataset = TimeSeriesCollection()
-            dataset.addSeries(timeSeries)
-
-            val chart = ChartFactory.createTimeSeriesChart(
-                "Hits",  // title
-                "Date",  // x-axis label
-                "Count",  // y-axis label
-                dataset
-            )
-
-            chart.backgroundPaint = java.awt.Color.WHITE
-            val plot = chart.plot as XYPlot
-            with(plot) {
-                backgroundPaint = java.awt.Color.LIGHT_GRAY
-                setDomainGridlinePaint(java.awt.Color.WHITE)
-                setRangeGridlinePaint(java.awt.Color.WHITE)
-                setAxisOffset(RectangleInsets(5.0, 5.0, 5.0, 5.0))
-                isDomainCrosshairVisible = true
-                isRangeCrosshairVisible = true
-            }
-
-            val renderer = plot.renderer
-            if (renderer is XYLineAndShapeRenderer) {
-                with(renderer) {
-                    setDefaultShapesVisible(true)
-                    setDefaultShapesFilled(true)
-                    drawSeriesLineAsPath = true
-                }
-            }
-
-            val axis = plot.domainAxis as DateAxis
-            axis.setDateFormatOverride(SimpleDateFormat("MMM-yyyy"))
-            ChartPanel(chart, false).also {
-                it.fillZoomRectangle = true
-                it.isMouseWheelEnabled = true
-            }
-        }
-    )
 }
 
 
