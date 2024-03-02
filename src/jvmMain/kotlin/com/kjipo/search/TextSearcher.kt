@@ -58,6 +58,9 @@ class TextSearcher(config: Config) {
 
                 Pair(documentDate, documentId)
             }
+            .sorted { document, document2 ->
+                document.first.compareTo(document2.first)
+            }
             .toList()
     }
 
