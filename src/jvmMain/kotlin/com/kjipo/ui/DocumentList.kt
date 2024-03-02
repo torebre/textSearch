@@ -5,11 +5,11 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import java.time.format.DateTimeFormatter
 
@@ -43,7 +43,8 @@ internal fun DocumentList(documentListState: DocumentListState, documentListMode
             VerticalScrollbar(
                 modifier = Modifier.align(Alignment.CenterEnd)
                     .fillMaxHeight()
-                    .border(5.dp, color = Color.Green),
+                    .width(20.dp)
+                    .border(2.dp, color = MaterialTheme.colors.secondary),
                 adapter = rememberScrollbarAdapter(listState)
             )
         }
@@ -62,7 +63,8 @@ internal fun DocumentList(documentListState: DocumentListState, documentListMode
 
             VerticalScrollbar(
                 modifier = Modifier.align(Alignment.CenterEnd)
-                    .fillMaxHeight().border(5.dp, color = Color.Green),
+                    .fillMaxHeight()
+                    .border(2.dp, color = MaterialTheme.colors.onPrimary),
                 adapter = rememberScrollbarAdapter(scrollStateVertical)
             )
         }

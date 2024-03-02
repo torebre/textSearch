@@ -60,4 +60,3 @@ fun SearchGraph(timeSeries: TimeSeries) {
         }
     )
 }
-

@@ -27,11 +27,14 @@ fun SearchUi(searchModel: SearchModel, documentListModel: DocumentListModel) {
 
     Column(modifier = Modifier.fillMaxWidth()) {
         Row {
-            TextField(uiState.searchText, onValueChange = {
-                searchModel.onSearchTextChanged(it)
-            })
+            TextField(
+                uiState.searchText,
+                onValueChange = {
+                    searchModel.onSearchTextChanged(it)
+                }, modifier = Modifier.padding(start = 5.dp, top = 5.dp, bottom = 5.dp))
 
             Button(
+                modifier = Modifier.padding(start = 5.dp, top = 5.dp, bottom = 5.dp),
                 onClick = {
                     searchModel.search()
                 },
@@ -42,17 +45,21 @@ fun SearchUi(searchModel: SearchModel, documentListModel: DocumentListModel) {
         }
 
         var tabIndex by remember { mutableStateOf(0) }
+        val tabModifier = Modifier.clip(shape = MaterialTheme.shapes.medium)
 
         TabRow(
             selectedTabIndex = tabIndex
         ) {
             Tab(text = { Text("Hits") },
+                modifier = tabModifier,
                 selected = tabIndex == 0,
                 onClick = { tabIndex = 0 })
             Tab(text = { Text("Documents") },
+                modifier = tabModifier,
                 selected = tabIndex == 1,
                 onClick = { tabIndex = 1 })
             Tab(text = { Text("Graph") },
+                modifier = tabModifier,
                 selected = tabIndex == 2,
                 onClick = { tabIndex = 2 })
         }
@@ -72,39 +79,38 @@ private fun SearchList(uiState: SearchUiState, searchModel: SearchModel) {
     val scrollStateVertical = rememberScrollState(0)
 
     Row {
-        Box {
-            LazyColumn(
-                modifier = Modifier.width(360.dp),
-                state = listState
+        LazyColumn(
+            modifier = Modifier.width(360.dp),
+            state = listState
+        ) {
+            items(uiState.searchResults) { searchResult ->
+                SearchHit(searchResult, searchModel::setCurrentDocument)
+            }
+        }
+        VerticalScrollbar(
+            modifier = Modifier.align(Alignment.CenterVertically)
+                .fillMaxHeight()
+                .width(20.dp)
+                .border(2.dp, color = MaterialTheme.colors.onPrimary),
+            adapter = rememberScrollbarAdapter(listState)
+        )
+
+        Column {
+            Box(
+                modifier = Modifier.padding(5.dp)
+                    .verticalScroll(scrollStateVertical)
             ) {
-                items(uiState.searchResults) { searchResult ->
-                    SearchHit(searchResult, searchModel::setCurrentDocument)
-                }
+                Text(
+                    text = uiState.currentDocument
+                )
             }
-            VerticalScrollbar(
-                modifier = Modifier.align(Alignment.CenterEnd)
-                    .fillMaxHeight()
-                    .border(5.dp, color = Color.Green),
-                adapter = rememberScrollbarAdapter(listState)
-            )
         }
 
-        Box {
-            Column {
-                Box(modifier = Modifier.padding(5.dp)
-                    .verticalScroll(scrollStateVertical)) {
-                    Text(
-                        text = uiState.currentDocument
-                    )
-                }
-            }
-
-            VerticalScrollbar(
-                modifier = Modifier.align(Alignment.CenterEnd)
-                    .fillMaxHeight().border(5.dp, color = Color.Green),
-                adapter = rememberScrollbarAdapter(scrollStateVertical)
-            )
-        }
+        VerticalScrollbar(
+            modifier = Modifier.align(Alignment.CenterVertically)
+                .fillMaxHeight().border(5.dp, color = Color.Green),
+            adapter = rememberScrollbarAdapter(scrollStateVertical)
+        )
     }
 }
 
@@ -115,7 +121,6 @@ private fun SearchHit(searchResult: SearchResult, setCurrentDocument: (Int) -> U
     val roundedShape = RoundedCornerShape(12.dp)
     Box(
         modifier = Modifier.padding(2.dp)
-            .width(200.dp)
             .clip(roundedShape)
             .background(MaterialTheme.colors.secondary)
             .combinedClickable(onClick = {
@@ -149,9 +154,10 @@ private fun SearchHit(searchResult: SearchResult, setCurrentDocument: (Int) -> U
 @Preview
 @Composable
 fun SearchHitPreview() {
-    SearchHit(SearchResult(1, LocalDate.now(), listOf("Test1", "Test2")),
-        {
-            // Do nothing
-        })
+    SearchHit(
+        SearchResult(1, LocalDate.now(), listOf("Test1", "Test2"))
+    ) {
+        // Do nothing
+    }
 
 }
