@@ -10,7 +10,7 @@ class Config(val indexFileDirectory: Path) {
 
     companion object {
 
-        fun getConfig(config: String = "search_config.properties"): Config {
+        fun getConfig(config: String): Config {
             val configPath = Paths.get(config)
 
             if (configPath.notExists()) {

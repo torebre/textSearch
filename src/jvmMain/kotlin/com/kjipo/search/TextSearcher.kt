@@ -10,6 +10,7 @@ import org.apache.lucene.search.DocIdSetIterator
 import org.apache.lucene.search.DocIdSetIterator.NO_MORE_DOCS
 import org.apache.lucene.search.IndexSearcher
 import org.apache.lucene.search.Query
+import org.apache.lucene.search.ScoreDoc
 import org.apache.lucene.search.TopDocs
 import org.apache.lucene.search.highlight.*
 import org.apache.lucene.store.Directory
@@ -108,15 +109,19 @@ class TextSearcher(config: Config) {
     }
 
     fun getTextResultsForQuery(searchResult: SearchResult): List<TextSearchResult> {
-        return getTextResultsForQuery(searchResult.query, searchResult.hits)
+        return getTextResultsForQuery(searchResult.query, searchResult.hits).sortedBy { it.documentDate }
     }
 
 
     fun getDatesForHits(hits: TopDocs): List<LocalDate> {
         return hits.scoreDocs.map { scoreDoc ->
-            searcher.doc(scoreDoc.doc).let {
-                LocalDate.parse(it.get("doc_name"), dateFormatter)
-            }
+            getDateForHit(scoreDoc)
+        }
+    }
+
+    fun getDateForHit(scoreDoc: ScoreDoc): LocalDate {
+        return searcher.doc(scoreDoc.doc).let {
+            LocalDate.parse(it.get("doc_name"), dateFormatter)
         }
     }
 

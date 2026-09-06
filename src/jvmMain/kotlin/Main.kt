@@ -11,8 +11,8 @@ import com.kjipo.ui.SearchUi
 
 @Composable
 @Preview
-fun App() {
-    val config = Config.getConfig("/home/student/workspace/textSearch/search_config.properties")
+fun App(configPath: String) {
+    val config = Config.getConfig(configPath)
     val textSearcher = TextSearcher(config)
     val searchModel = SearchModel(textSearcher)
     val documentListModel = DocumentListModel(textSearcher)
@@ -23,8 +23,13 @@ fun App() {
     }
 }
 
-fun main() = application {
-    Window(onCloseRequest = ::exitApplication) {
-        App()
+fun main(args: Array<String>) {
+    val configPath = args.firstOrNull() ?: "search_config.properties"
+
+    application {
+//    "/home/student/workspace/textSearch/search_config.properties"
+        Window(onCloseRequest = ::exitApplication) {
+            App(configPath)
+        }
     }
 }
