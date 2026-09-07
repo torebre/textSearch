@@ -62,12 +62,17 @@ fun SearchUi(searchModel: SearchModel, documentListModel: DocumentListModel) {
                 modifier = tabModifier,
                 selected = tabIndex == 2,
                 onClick = { tabIndex = 2 })
+            Tab(text = { Text("Histogram") },
+                modifier = tabModifier,
+                selected = tabIndex == 3,
+                onClick = { tabIndex = 3 })
         }
 
         when (tabIndex) {
             0 -> SearchList(uiState, searchModel)
             1 -> DocumentList(documentListModel)
             2 -> SearchGraph(searchModel.getTimeSeries())
+            3 -> SearchHistogram(searchModel.getHistogramDataset())
         }
     }
 

@@ -5,6 +5,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.kjipo.search.TextSearcher
+import org.jfree.data.statistics.HistogramDataset
+import org.jfree.data.statistics.HistogramType
 import org.jfree.data.time.Day
 import org.jfree.data.time.TimeSeries
 import java.sql.Date
@@ -16,6 +18,9 @@ class SearchModel(private val textSearcher: TextSearcher) {
         private set
 
     var timeSeriesState: MutableState<TimeSeries?> = mutableStateOf(null)
+        private set
+
+    var histogramDatasetState: MutableState<HistogramDataset?> = mutableStateOf(null)
         private set
 
     private var currentSearchResult: com.kjipo.search.SearchResult? = null
@@ -56,6 +61,7 @@ class SearchModel(private val textSearcher: TextSearcher) {
                         })
                     }
                     timeSeriesState.value = getTimeSeries()
+                    histogramDatasetState.value = getHistogramDataset()
                 }
             }
         }
@@ -71,6 +77,29 @@ class SearchModel(private val textSearcher: TextSearcher) {
                    }
            }
        }
+    }
+
+    fun getHistogramDataset(
+        bins: Int = 10,
+        startDate: LocalDate? = null,
+        endDate: LocalDate? = null
+    ): HistogramDataset {
+        return HistogramDataset().apply {
+            type = HistogramType.FREQUENCY
+            currentSearchResult?.let { searchResult ->
+                val dates = textSearcher.getDatesForHits(searchResult.hits)
+                if (dates.isNotEmpty()) {
+                    val millis = dates.map { Date.valueOf(it).time.toDouble() }.toDoubleArray()
+                    val min = startDate?.let { Date.valueOf(it).time.toDouble() }
+                    val max = endDate?.let { Date.valueOf(it).time.toDouble() }
+                    if (min != null && max != null && min < max) {
+                        addSeries("Hits", millis, bins, min, max)
+                    } else {
+                        addSeries("Hits", millis, bins)
+                    }
+                }
+            }
+        }
     }
 
 }
