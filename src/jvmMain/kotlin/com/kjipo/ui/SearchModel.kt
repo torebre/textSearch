@@ -5,10 +5,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.kjipo.search.TextSearcher
-import org.jfree.data.statistics.HistogramDataset
-import org.jfree.data.statistics.HistogramType
-import org.jfree.data.time.Day
-import org.jfree.data.time.TimeSeries
+import org.jetbrains.letsPlot.Figure
+import org.jetbrains.letsPlot.geom.geomHistogram
+import org.jetbrains.letsPlot.geom.geomLine
+import org.jetbrains.letsPlot.geom.geomPoint
+import org.jetbrains.letsPlot.label.ggtitle
+import org.jetbrains.letsPlot.label.labs
+import org.jetbrains.letsPlot.letsPlot
+import org.jetbrains.letsPlot.scale.scaleXDateTime
 import java.sql.Date
 import java.time.LocalDate
 
@@ -17,10 +21,10 @@ class SearchModel(private val textSearcher: TextSearcher) {
     var uiState: SearchUiState by mutableStateOf(SearchUiState())
         private set
 
-    var timeSeriesState: MutableState<TimeSeries?> = mutableStateOf(null)
+    var timeSeriesState: MutableState<Figure?> = mutableStateOf(null)
         private set
 
-    var histogramDatasetState: MutableState<HistogramDataset?> = mutableStateOf(null)
+    var histogramDatasetState: MutableState<Figure?> = mutableStateOf(null)
         private set
 
     private var currentSearchResult: com.kjipo.search.SearchResult? = null
@@ -32,9 +36,13 @@ class SearchModel(private val textSearcher: TextSearcher) {
 
     fun setCurrentDocument(documentId: Int) {
         textSearcher.getDocument(documentId)?.let { document ->
-            document.get("contents").let {documentContents ->
-                setState { copy(currentDocumentId = documentId,
-                    currentDocument = documentContents) }
+            document.get("contents").let { documentContents ->
+                setState {
+                    copy(
+                        currentDocumentId = documentId,
+                        currentDocument = documentContents
+                    )
+                }
             }
         }
     }
@@ -68,40 +76,87 @@ class SearchModel(private val textSearcher: TextSearcher) {
     }
 
 
-    fun getTimeSeries(): TimeSeries {
-       return TimeSeries("Hits").also { timeSeries ->
-           currentSearchResult?.let { searchResult ->
-               textSearcher.getDatesForHits(searchResult.hits)
-                   .forEach {
-                       timeSeries.add(Day(Date.valueOf(it)), 1)
-                   }
-           }
-       }
+    fun getTimeSeries(
+        title: String = "Hits",
+        xAxisLabel: String = "Date",
+        yAxisLabel: String = "Count",
+        dateFormat: String = "MMM-yyyy"
+    ): Figure {
+        val dates = currentSearchResult?.let { searchResult ->
+            textSearcher.getDatesForHits(searchResult.hits)
+        } ?: emptyList()
+
+        val dateCounts = dates.groupingBy { it }.eachCount().toSortedMap()
+        val data = mapOf(
+            xAxisLabel to dateCounts.keys.map { Date.valueOf(it).time },
+            yAxisLabel to dateCounts.values.toList()
+        )
+
+        val formattedDatePattern = convertDateFormat(dateFormat)
+
+        return letsPlot(data) +
+            geomLine { x = xAxisLabel; y = yAxisLabel } +
+            geomPoint { x = xAxisLabel; y = yAxisLabel } +
+            ggtitle(title) +
+            scaleXDateTime(name = xAxisLabel, format = formattedDatePattern) +
+            labs(y = yAxisLabel)
     }
 
     fun getHistogramDataset(
         bins: Int = 10,
         startDate: LocalDate? = null,
-        endDate: LocalDate? = null
-    ): HistogramDataset {
-        return HistogramDataset().apply {
-            type = HistogramType.FREQUENCY
-            currentSearchResult?.let { searchResult ->
-                val dates = textSearcher.getDatesForHits(searchResult.hits)
-                if (dates.isNotEmpty()) {
-                    val millis = dates.map { Date.valueOf(it).time.toDouble() }.toDoubleArray()
-                    val min = startDate?.let { Date.valueOf(it).time.toDouble() }
-                    val max = endDate?.let { Date.valueOf(it).time.toDouble() }
-                    if (min != null && max != null && min < max) {
-                        addSeries("Hits", millis, bins, min, max)
-                    } else {
-                        addSeries("Hits", millis, bins)
-                    }
-                }
-            }
+        endDate: LocalDate? = null,
+        title: String = "Hits",
+        xAxisLabel: String = "Date",
+        yAxisLabel: String = "Count",
+        dateFormat: String = "MMM-yyyy"
+    ): Figure {
+        var dates = currentSearchResult?.let { searchResult ->
+            textSearcher.getDatesForHits(searchResult.hits)
+        } ?: emptyList()
+
+        if (startDate != null) {
+            dates = dates.filter { !it.isBefore(startDate) }
         }
+        if (endDate != null) {
+            dates = dates.filter { !it.isAfter(endDate) }
+        }
+
+        val millis = dates.map { Date.valueOf(it).time }
+        val data = mapOf(
+            xAxisLabel to millis
+        )
+
+        val minMillis = startDate?.let { Date.valueOf(it).time }
+        val maxMillis = endDate?.let { Date.valueOf(it).time }
+        val limits = if (minMillis != null && maxMillis != null && minMillis < maxMillis) {
+            Pair(minMillis, maxMillis)
+        } else {
+            null
+        }
+
+        val formattedDatePattern = convertDateFormat(dateFormat)
+
+        return letsPlot(data) +
+            geomHistogram(bins = bins) { x = xAxisLabel } +
+            ggtitle(title) +
+            scaleXDateTime(name = xAxisLabel, format = formattedDatePattern, limits = limits) +
+            labs(y = yAxisLabel)
     }
 
+    companion object {
+        fun convertDateFormat(dateFormat: String): String {
+            if (dateFormat.contains("%")) return dateFormat
+            return dateFormat
+                .replace("yyyy", "%Y")
+                .replace("yy", "%y")
+                .replace("MMMM", "%B")
+                .replace("MMM", "%b")
+                .replace("MM", "%m")
+                .replace("dd", "%d")
+                .replace("d", "%e")
+        }
+    }
 }
 
 

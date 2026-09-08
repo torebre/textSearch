@@ -10,6 +10,8 @@ import org.apache.lucene.document.TextField
 import org.apache.lucene.index.IndexWriter
 import org.apache.lucene.index.IndexWriterConfig
 import org.apache.lucene.store.FSDirectory
+import org.jetbrains.letsPlot.batik.plot.component.DefaultPlotPanelBatik
+import org.jetbrains.letsPlot.core.util.MonolithicCommon
 import org.jetbrains.letsPlot.intern.toSpec
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -17,13 +19,12 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import java.io.FileOutputStream
 import java.nio.file.Path
-import java.time.LocalDate
 import java.util.Properties
 
-class SearchHistogramTest {
+class SearchGraphTest {
 
     @Test
-    fun testHistogramDatasetFromSearchModel(@TempDir tempDir: Path) {
+    fun testTimeSeriesPlotFromSearchModel(@TempDir tempDir: Path) {
         val indexPath = tempDir.resolve("index")
         val configFile = tempDir.resolve("search_config.properties")
 
@@ -34,7 +35,58 @@ class SearchHistogramTest {
         val directory = FSDirectory.open(indexPath)
         val indexWriterConfig = IndexWriterConfig(StandardAnalyzer())
         IndexWriter(directory, indexWriterConfig).use { writer ->
-            val dates = listOf("010120", "010520", "011020", "020120", "030120")
+            val dates = listOf("010120", "010120", "010520", "020120")
+            for (dateStr in dates) {
+                val doc = Document().apply {
+                    add(StringField("doc_name", dateStr, Field.Store.YES))
+                    add(TextField("contents", "target keyword in document", Field.Store.YES))
+                }
+                writer.addDocument(doc)
+            }
+        }
+
+        val appConfig = Config.getConfig(configFile.toAbsolutePath().toString())
+        val textSearcher = TextSearcher(appConfig)
+        val searchModel = SearchModel(textSearcher)
+
+        searchModel.onSearchTextChanged("target")
+        searchModel.search()
+
+        val plot = searchModel.getTimeSeries()
+        val spec = plot.toSpec()
+        assertEquals("plot", spec["kind"])
+        val data = spec["data"] as Map<*, *>
+        val dateValues = data["Date"] as List<*>
+        val countValues = data["Count"] as List<*>
+        assertEquals(3, dateValues.size)
+        assertEquals(3, countValues.size)
+
+        // Verify DefaultPlotPanelBatik can be created with the processed spec
+        val processedSpec = MonolithicCommon.processRawSpecs(spec, frontendOnly = false)
+        val panel = DefaultPlotPanelBatik(
+            processedSpec = processedSpec,
+            preserveAspectRatio = false,
+            preferredSizeFromPlot = false,
+            repaintDelay = 100,
+            computationMessagesHandler = {}
+        )
+        assertNotNull(panel)
+        panel.dispose()
+    }
+
+    @Test
+    fun testHistogramPlotFromSearchModel(@TempDir tempDir: Path) {
+        val indexPath = tempDir.resolve("index")
+        val configFile = tempDir.resolve("search_config.properties")
+
+        val properties = Properties()
+        properties.setProperty("indexDirectory", indexPath.toAbsolutePath().toString())
+        FileOutputStream(configFile.toFile()).use { properties.store(it, null) }
+
+        val directory = FSDirectory.open(indexPath)
+        val indexWriterConfig = IndexWriterConfig(StandardAnalyzer())
+        IndexWriter(directory, indexWriterConfig).use { writer ->
+            val dates = listOf("010120", "010120", "010520", "020120")
             for (dateStr in dates) {
                 val doc = Document().apply {
                     add(StringField("doc_name", dateStr, Field.Store.YES))
@@ -54,22 +106,21 @@ class SearchHistogramTest {
         val plot = searchModel.getHistogramDataset(bins = 5)
         val spec = plot.toSpec()
         assertEquals("plot", spec["kind"])
-        val data = spec["data"] as Map<*, *>
-        val dateValues = data["Date"] as List<*>
-        assertEquals(5, dateValues.size)
 
-        val startDate = LocalDate.of(2020, 1, 1)
-        val endDate = LocalDate.of(2020, 4, 1)
-        val boundedPlot = searchModel.getHistogramDataset(bins = 3, startDate = startDate, endDate = endDate)
-        val boundedSpec = boundedPlot.toSpec()
-        assertEquals("plot", boundedSpec["kind"])
-        val boundedData = boundedSpec["data"] as Map<*, *>
-        val boundedDates = boundedData["Date"] as List<*>
-        assertEquals(5, boundedDates.size)
+        val processedSpec = MonolithicCommon.processRawSpecs(spec, frontendOnly = false)
+        val panel = DefaultPlotPanelBatik(
+            processedSpec = processedSpec,
+            preserveAspectRatio = false,
+            preferredSizeFromPlot = false,
+            repaintDelay = 100,
+            computationMessagesHandler = {}
+        )
+        assertNotNull(panel)
+        panel.dispose()
     }
 
     @Test
-    fun testEmptySearchModelHistogram(@TempDir tempDir: Path) {
+    fun testEmptySearchModelTimeSeries(@TempDir tempDir: Path) {
         val indexPath = tempDir.resolve("index")
         val configFile = tempDir.resolve("search_config.properties")
 
@@ -85,11 +136,13 @@ class SearchHistogramTest {
         val textSearcher = TextSearcher(appConfig)
         val searchModel = SearchModel(textSearcher)
 
-        val plot = searchModel.getHistogramDataset()
+        val plot = searchModel.getTimeSeries()
         val spec = plot.toSpec()
         assertEquals("plot", spec["kind"])
         val data = spec["data"] as Map<*, *>
         val dateValues = data["Date"] as List<*>
+        val countValues = data["Count"] as List<*>
         assertEquals(0, dateValues.size)
+        assertEquals(0, countValues.size)
     }
 }

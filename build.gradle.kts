@@ -31,7 +31,8 @@ kotlin {
             implementation("ch.qos.logback:logback-classic:1.2.3")
             implementation("ch.qos.logback:logback-core:1.2.3")
 
-            implementation("org.jfree:jfreechart:1.5.4")
+            implementation("org.jetbrains.lets-plot:lets-plot-batik:4.8.2")
+            implementation("org.jetbrains.lets-plot:lets-plot-kotlin:4.9.3")
         }
         jvmTest.dependencies {
             implementation("org.junit.jupiter:junit-jupiter:5.11.4")

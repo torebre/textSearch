@@ -1,9 +1,13 @@
 package com.kjipo.ui
 
-import org.jfree.chart.axis.DateAxis
-import org.jfree.data.statistics.HistogramDataset
-import org.jfree.data.statistics.HistogramType
-import org.junit.jupiter.api.Assertions.*
+import org.jetbrains.letsPlot.geom.geomHistogram
+import org.jetbrains.letsPlot.intern.toSpec
+import org.jetbrains.letsPlot.label.ggtitle
+import org.jetbrains.letsPlot.label.labs
+import org.jetbrains.letsPlot.letsPlot
+import org.jetbrains.letsPlot.scale.scaleXDateTime
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
 import java.sql.Date
 import java.time.LocalDate
@@ -12,9 +16,6 @@ class HistogramDetailedTest {
 
     @Test
     fun testHistogramBinsWithMultipleDates() {
-        val dataset = HistogramDataset()
-        dataset.type = HistogramType.FREQUENCY
-
         val dates = listOf(
             LocalDate.of(2020, 1, 1),
             LocalDate.of(2020, 1, 2),
@@ -22,59 +23,63 @@ class HistogramDetailedTest {
             LocalDate.of(2020, 1, 10),
             LocalDate.of(2020, 1, 20)
         )
-        val millis = dates.map { Date.valueOf(it).time.toDouble() }.toDoubleArray()
+        val millis = dates.map { Date.valueOf(it).time }
         val bins = 4
-        dataset.addSeries("Hits", millis, bins)
+        val data = mapOf("Date" to millis)
+        val plot = letsPlot(data) +
+            geomHistogram(bins = bins) { x = "Date" } +
+            ggtitle("Hits") +
+            scaleXDateTime(name = "Date", format = "%b-%Y") +
+            labs(y = "Count")
 
-        assertEquals(1, dataset.seriesCount)
-        assertEquals(bins, dataset.getItemCount(0))
-
-        var totalHits = 0.0
-        for (i in 0 until bins) {
-            val count = dataset.getY(0, i).toDouble()
-            totalHits += count
-            val start = dataset.getStartX(0, i).toLong()
-            val end = dataset.getEndX(0, i).toLong()
-            assertTrue(start <= end)
-        }
-        assertEquals(dates.size.toDouble(), totalHits)
+        val spec = plot.toSpec()
+        assertEquals("plot", spec["kind"])
+        val dataMap = spec["data"] as Map<*, *>
+        val dateList = dataMap["Date"] as List<*>
+        assertEquals(5, dateList.size)
     }
 
     @Test
     fun testHistogramWithExplicitDateRange() {
-        val dataset = HistogramDataset()
-        dataset.type = HistogramType.FREQUENCY
-
         val dates = listOf(
             LocalDate.of(2020, 1, 5),
             LocalDate.of(2020, 1, 15)
         )
-        val millis = dates.map { Date.valueOf(it).time.toDouble() }.toDoubleArray()
-
         val minDate = LocalDate.of(2020, 1, 1)
         val maxDate = LocalDate.of(2020, 1, 31)
-        val minMillis = Date.valueOf(minDate).time.toDouble()
-        val maxMillis = Date.valueOf(maxDate).time.toDouble()
+        val minMillis = Date.valueOf(minDate).time
+        val maxMillis = Date.valueOf(maxDate).time
 
-        dataset.addSeries("Hits", millis, 10, minMillis, maxMillis)
+        val millis = dates.map { Date.valueOf(it).time }
+        val data = mapOf("Date" to millis)
+        val plot = letsPlot(data) +
+            geomHistogram(bins = 10) { x = "Date" } +
+            ggtitle("Hits") +
+            scaleXDateTime(name = "Date", format = "%b-%Y", limits = Pair(minMillis, maxMillis)) +
+            labs(y = "Count")
 
-        assertEquals(10, dataset.getItemCount(0))
-        assertEquals(minMillis, dataset.getStartX(0, 0).toDouble())
-        assertEquals(maxMillis, dataset.getEndX(0, 9).toDouble())
+        val spec = plot.toSpec()
+        assertEquals("plot", spec["kind"])
+        val dataMap = spec["data"] as Map<*, *>
+        val dateList = dataMap["Date"] as List<*>
+        assertEquals(2, dateList.size)
     }
 
     @Test
     fun testHistogramWithSingleDate() {
-        val dataset = HistogramDataset()
         val date = LocalDate.of(2020, 1, 1)
-        val millis = doubleArrayOf(Date.valueOf(date).time.toDouble())
+        val millis = listOf(Date.valueOf(date).time)
+        val data = mapOf("Date" to millis)
+        val plot = letsPlot(data) +
+            geomHistogram(bins = 5) { x = "Date" } +
+            ggtitle("Hits") +
+            scaleXDateTime(name = "Date", format = "%b-%Y") +
+            labs(y = "Count")
 
-        dataset.addSeries("Hits", millis, 5)
-        assertEquals(5, dataset.getItemCount(0))
-        var totalHits = 0.0
-        for (i in 0 until 5) {
-            totalHits += dataset.getY(0, i).toDouble()
-        }
-        assertEquals(1.0, totalHits)
+        val spec = plot.toSpec()
+        assertEquals("plot", spec["kind"])
+        val dataMap = spec["data"] as Map<*, *>
+        val dateList = dataMap["Date"] as List<*>
+        assertEquals(1, dateList.size)
     }
 }
